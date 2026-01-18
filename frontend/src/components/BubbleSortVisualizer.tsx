@@ -34,99 +34,33 @@ export default function BubbleSortVisualizer() {
         generateArray();
     }, [generateArray]);
 
-    // Bubble Sort Algorithm to generate steps
-    const generateSteps = () => {
-        const arr = [...array];
-        const newSteps: SortStep[] = [];
-        const n = arr.length;
-        const sortedIndices: number[] = [];
+    // Fetch sorting steps from Backend API
+    const generateSteps = async () => {
+        setIsPlaying(true); // Temporarily set to true to show loading state if needed, or handle with separate loading state
 
-        // Initial step
-        newSteps.push({
-            array: [...arr],
-            comparing: [],
-            swapping: false,
-            sorted: [],
-            description: "Starting Bubble Sort on the array."
-        });
-
-        for (let i = 0; i < n - 1; i++) {
-            let swapped = false;
-            for (let j = 0; j < n - i - 1; j++) {
-                // Comparison step
-                newSteps.push({
-                    array: [...arr],
-                    comparing: [j, j + 1],
-                    swapping: false,
-                    sorted: [...sortedIndices],
-                    description: `Comparing ${arr[j]} and ${arr[j + 1]}. Is ${arr[j]} > ${arr[j + 1]}?`
-                });
-
-                if (arr[j] > arr[j + 1]) {
-                    // Swap step
-                    const temp = arr[j];
-                    arr[j] = arr[j + 1];
-                    arr[j + 1] = temp;
-                    swapped = true;
-
-                    newSteps.push({
-                        array: [...arr],
-                        comparing: [j, j + 1],
-                        swapping: true,
-                        sorted: [...sortedIndices],
-                        description: `Yes, ${arr[j + 1]} > ${arr[j]} (was ${arr[j]}). Swapping them!`
-                    });
-                } else {
-                    newSteps.push({
-                        array: [...arr],
-                        comparing: [j, j + 1],
-                        swapping: false,
-                        sorted: [...sortedIndices],
-                        description: `No, ${arr[j]} < ${arr[j + 1]}. No swap needed.`
-                    });
-                }
-            }
-            sortedIndices.push(n - 1 - i);
-
-            // End of pass step
-            newSteps.push({
-                array: [...arr],
-                comparing: [],
-                swapping: false,
-                sorted: [...sortedIndices],
-                description: `Pass complete. ${arr[n - 1 - i]} is now in its sorted position.`
+        try {
+            const response = await fetch('http://localhost:8080/api/sort/bubble', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(array),
             });
 
-            if (!swapped) {
-                // Optimization: if no swaps, array is sorted
-                // Mark remaining as sorted
-                for (let k = 0; k < n - 1 - i; k++) {
-                    sortedIndices.push(k);
-                }
-                break;
+            if (!response.ok) {
+                throw new Error('Failed to fetch sort steps');
             }
+
+            const data = await response.json();
+            setSteps(data.steps);
+            setCurrentStep(0);
+            setIsPlaying(true);
+            setIsPaused(false);
+        } catch (error) {
+            console.error("Error fetching sort steps:", error);
+            alert("Failed to connect to backend sorting API. Ensure Java backend is running.");
+            setIsPlaying(false);
         }
-
-        // Ensure all are marked sorted at the end
-        if (sortedIndices.length < n) {
-            for (let k = 0; k < n; k++) {
-                if (!sortedIndices.includes(k)) sortedIndices.push(k);
-            }
-        }
-
-        // Final step
-        newSteps.push({
-            array: [...arr],
-            comparing: [],
-            swapping: false,
-            sorted: Array.from({ length: n }, (_, i) => i),
-            description: "Array is fully sorted!"
-        });
-
-        setSteps(newSteps);
-        setCurrentStep(1); // Start from first actual action
-        setIsPlaying(true);
-        setIsPaused(false);
     };
 
     // Play control
